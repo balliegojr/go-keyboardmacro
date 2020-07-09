@@ -11,13 +11,16 @@ devices:
   - device:
     name: 'input_kbd'
     macros:
-      A: 'command'
-      31: 'another command'
+      A:
+        exec: 'command'
+      31: 
+        exec: 'another command'
 
   - device:
     name: 'other device'
     macros:
-      B: 'B command'
+      B: 
+        exec: 'B command'
 
 `
 
@@ -39,12 +42,12 @@ devices:
 		t.Fatalf("got length %d, expected 2", len(inputkbd.Macros))
 	}
 
-	if inputkbd.Macros["A"] != "command" {
-		t.Fatalf(`got macro["A"] %v, expected "command"`, inputkbd.Macros["A"])
+	if inputkbd.Macros["A"].Exec != "command" {
+		t.Fatalf(`got macro["A"] %v, expected "command"`, inputkbd.Macros["A"].Exec)
 	}
 
-	if inputkbd.Macros["31"] != "another command" {
-		t.Fatalf(`got macro["31"] %v, expected "another command"`, inputkbd.Macros["A"])
+	if inputkbd.Macros["31"].Exec != "another command" {
+		t.Fatalf(`got macro["31"] %v, expected "another command"`, inputkbd.Macros["A"].Exec)
 	}
 
 	otherdevice := c.Devices[1]
@@ -56,8 +59,8 @@ devices:
 		t.Fatalf("got macros lenght %d, expected 1", len(otherdevice.Macros))
 	}
 
-	if otherdevice.Macros["B"] != "B command" {
-		t.Fatalf(`got macro["B"] %v, expected "B command"`, otherdevice.Macros["B"])
+	if otherdevice.Macros["B"].Exec != "B command" {
+		t.Fatalf(`got macro["B"] %v, expected "B command"`, otherdevice.Macros["B"].Exec)
 	}
 
 }

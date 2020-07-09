@@ -8,12 +8,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//Macro represents the macro section in the configuration file
+type Macro struct {
+	Exec string
+	Type string `yaml:"omitempty"`
+}
+
+// Device represents the device section in the configuration file
+type Device struct {
+	Name   string
+	Macros map[string]Macro
+}
+
 // Config represents device configuration and its macros
 type Config struct {
-	Devices []struct {
-		Name   string
-		Macros map[string]string
-	}
+	Devices []Device
 }
 
 // parseConfig reads the yaml configuration from the Reader
