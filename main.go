@@ -11,35 +11,69 @@ type keyevent struct {
 	keycode    int
 }
 
-func main() {
+func scanEvents() {
+	events := make(chan keyevent)
 
-	configPtr := flag.String("config", "", "path to config file")
+	devices, err := getCompatibleDevices(true)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 
-	flag.Parse()
+	for _, d := range devices {
+		go listenEvents(d, events, false)
+	}
 
-	if *configPtr == "" {
+	fmt.Println("Press ctrl+C to stop")
+
+	for event := range events {
+		fmt.Printf("%s: %d\n", event.deviceName, event.keycode)
+	}
+}
+
+func handleEvents(configPath string) {
+
+	if configPath == "" {
 		flag.PrintDefaults()
 		os.Exit(-1)
 	}
 
-	configFile, err := os.Open(*configPtr)
+	configFile, err := os.Open(configPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
+	config := parseConfig(configFile)
+	hooks, err := hooksFromConfig(&config)
+
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
 
 	events := make(chan keyevent)
-
-	config := parseConfig(configFile)
-	hooks, err := hooksFromConfig(&config)
-
 	for _, d := range config.Devices {
-		go openDevice(d.Name, events)
+		go listenEvents(d.Name, events, d.Grab)
 	}
 
 	for event := range events {
-		for _, hook := range hooks[event.deviceName][event.keycode] {
-			hook.execute()
+		for _, handler := range hooks[event.deviceName][event.keycode] {
+			handler.handle()
 		}
 	}
+}
+
+func main() {
+	configPtr := flag.String("config", "", "path to config file")
+	scanPtr := flag.Bool("scan", false, "output events from available devices")
+
+	flag.Parse()
+
+	if *scanPtr == true {
+		scanEvents()
+	} else {
+		handleEvents(*configPtr)
+	}
+
 }

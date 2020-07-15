@@ -11,16 +11,21 @@ import (
 	evdev "github.com/gvalkov/golang-evdev"
 )
 
-type hook interface {
-	execute()
+type handler interface {
+	handle()
 }
 
-type execHook struct {
+type execHandler struct {
 	command string
 }
 
-func (e execHook) execute() {
-	err := exec.Command("sh", "-c", e.command).Start()
+func (e execHandler) handle() {
+	parts := strings.Fields(e.command)
+	command := parts[0]
+
+	cmd := exec.Command(command, parts...)
+	err := cmd.Start()
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -64,35 +69,35 @@ func getKeyCode(c string) (int, error) {
 
 }
 
-// getHook return the hook for the given macro. Only exec hook is available today
-func getHook(m *Macro) hook {
-	return execHook{m.Exec}
+// getHook return the hook for the given binding. Only exec hook is available today
+func getHandler(b *Binding) handler {
+	return execHandler{b.Exec}
 }
 
 // Transform given configuration into hooks.
 // The result will be a slice of hooks for a key code and device
 // ex: hooks := result['device_name'][30]
-func hooksFromConfig(c *Config) (map[string]map[int][]hook, error) {
-	devicesMap := map[string]map[int][]hook{}
+func hooksFromConfig(c *Config) (map[string]map[int][]handler, error) {
+	devicesMap := map[string]map[int][]handler{}
 
 	for _, d := range c.Devices {
 		if !evdev.IsInputDevice(inputAbsolutePath + d.Name) {
-			return map[string]map[int][]hook{}, errors.New("Input device not found")
+			return map[string]map[int][]handler{}, errors.New("Input device not found")
 		}
 
 		dm, ok := devicesMap[d.Name]
 		if !ok {
-			dm = map[int][]hook{}
+			dm = map[int][]handler{}
 			devicesMap[d.Name] = dm
 		}
 
-		for code, m := range d.Macros {
+		for code, m := range d.Bindings {
 			c, err := getKeyCode(code)
 			if err != nil {
-				return map[string]map[int][]hook{}, err
+				return map[string]map[int][]handler{}, err
 			}
 
-			dm[c] = append(dm[c], getHook(&m))
+			dm[c] = append(dm[c], getHandler(&m))
 		}
 	}
 
@@ -100,13 +105,25 @@ func hooksFromConfig(c *Config) (map[string]map[int][]hook, error) {
 
 }
 
-func openDevice(deviceName string, events chan keyevent) {
-	device, _ := evdev.Open(inputAbsolutePath + deviceName)
+func listenEvents(deviceName string, events chan keyevent, grabDevice bool) {
+	device, err := evdev.Open(inputAbsolutePath + deviceName)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if grabDevice {
+		device.Grab()
+	}
 
 	for {
 		ev, _ := device.ReadOne()
-		e := evdev.NewKeyEvent(ev)
+		if ev.Type != evdev.EV_KEY {
+			continue
+		}
 
+		e := evdev.NewKeyEvent(ev)
 		if e.State == evdev.KeyUp {
 			events <- keyevent{deviceName: deviceName, keycode: int(e.Scancode)}
 		}

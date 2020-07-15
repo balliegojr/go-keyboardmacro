@@ -42,7 +42,7 @@ func TestHooksFromConfig(t *testing.T) {
 
 	c := Config{
 		Devices: []Device{
-			Device{"invalid device", map[string]Macro{}},
+			Device{"invalid device", map[string]Binding{}, false},
 		},
 	}
 
@@ -60,9 +60,9 @@ func TestHooksFromConfig(t *testing.T) {
 		Devices: []Device{
 			Device{
 				Name: devices[0],
-				Macros: map[string]Macro{
-					"30": Macro{"command X", ""},
-					"31": Macro{"command y", ""},
+				Bindings: map[string]Binding{
+					"30": Binding{"command X", ""},
+					"31": Binding{"command y", ""},
 				},
 			},
 		},

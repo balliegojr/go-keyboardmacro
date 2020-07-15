@@ -8,16 +8,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//Macro represents the macro section in the configuration file
-type Macro struct {
+//Binding represents the binding section in the configuration file
+type Binding struct {
 	Exec string
 	Type string `yaml:"omitempty"`
 }
 
 // Device represents the device section in the configuration file
 type Device struct {
-	Name   string
-	Macros map[string]Macro
+	Name     string
+	Bindings map[string]Binding
+	Grab     bool `yaml:"grab,omitempty"`
 }
 
 // Config represents device configuration and its macros
